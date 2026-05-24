@@ -1,0 +1,29 @@
+{
+  "name": "pitch-fund",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "agent": "node --no-warnings --env-file-if-exists=.env.local src/agent/agent.ts",
+    "agent:terminal": "node --no-warnings --env-file-if-exists=.env.local src/agent/terminal.ts",
+    "reset-fund": "node --no-warnings --env-file-if-exists=.env.local src/lib/reset.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "next": "^15.1.6",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "spectrum-ts": "^1.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
