@@ -1,6 +1,6 @@
 # Convince Hugh — the $100 iMessage fund game
 
-Hugh is a skeptical AI fund manager (Claude) who guards a real money pool. Anyone can
+Hugh is a skeptical AI fund manager who guards a real money pool. Anyone can
 text him over iMessage and try to talk money out of him. He can award small amounts to
 genuinely good pitches until the pool hits $0. A live web dashboard shows the leaderboard,
 who got funded, and who's playing. Payouts are settled manually by you.
