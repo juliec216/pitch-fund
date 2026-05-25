@@ -50,42 +50,43 @@ export default function Page() {
 
   return (
     <div className="wrap">
-      <div className="header">
+      <section className="hero">
+        <img
+          className="phoreal"
+          src="/pho-pho.png"
+          alt="Pho-pho, a smiling bowl of pho with a noodle moustache"
+        />
+
         <h1>Convince Pho-pho to win $100</h1>
-        <p>
-          Pho-pho guards a real fund. Sign up below to get your own iMessage line,
-          then text your best pitch. Every dollar he gives is real.
+        <p className="subtitle">
+          Pho-pho guards a real fund. Sign up to get your own iMessage line, then
+          text your best pitch. Every dollar he gives is real.
         </p>
-      </div>
 
-      <div className="hero">
-        <img src="/pho-pho.png" alt="Pho-pho, a smiling bowl of pho with a noodle moustache" />
-      </div>
-
-      <div className="fundbar">
-        <div className="row">
-          <div className="remaining">{stats?.remaining ?? "—"}</div>
-          <div className="of">left of {stats?.total ?? "—"}</div>
+        <div className="fundbar">
+          <div className="row">
+            <div className="remaining">{stats?.remaining ?? "—"}</div>
+            <div className="of">left of {stats?.total ?? "—"}</div>
+          </div>
+          <div className="track"><div className="fill" style={{ width: `${pct}%` }} /></div>
         </div>
-        <div className="track"><div className="fill" style={{ width: `${pct}%` }} /></div>
-      </div>
 
-      <div className="stats">
-        <div className="stat"><div className="n">{stats?.awarded ?? "—"}</div><div className="l">given away</div></div>
-        <div className="stat"><div className="n">{stats?.funded_count ?? 0}</div><div className="l">people funded</div></div>
-        <div className="stat"><div className="n">{stats?.participant_count ?? 0}</div><div className="l">challengers</div></div>
-      </div>
+        <div className="stats">
+          <div className="stat"><div className="n">{stats?.awarded ?? "—"}</div><div className="l">given away</div></div>
+          <div className="stat"><div className="n">{stats?.funded_count ?? 0}</div><div className="l">funded</div></div>
+          <div className="stat"><div className="n">{stats?.participant_count ?? 0}</div><div className="l">challengers</div></div>
+        </div>
 
-      <div className="qr-card">
-        <div className="qr-text">
-          <h2>Join the game</h2>
-          <p>Scan to sign up, then text Pho-pho from your phone.</p>
-          <a className="qr-cta" href="/join">Or tap to sign up →</a>
+        <div className="qr-card">
+          <div className="qr-text">
+            <h2>Join the game</h2>
+            <a className="qr-cta" href="/join">Or tap to sign up →</a>
+          </div>
+          <div className="qr-img">
+            {qrSrc ? <img src={qrSrc} alt="Scan to join" width={96} height={96} /> : <div className="qr-placeholder" />}
+          </div>
         </div>
-        <div className="qr-img">
-          {qrSrc ? <img src={qrSrc} alt="Scan to join" width={180} height={180} /> : <div className="qr-placeholder" />}
-        </div>
-      </div>
+      </section>
 
       <div className="cols">
         <div className="card">
