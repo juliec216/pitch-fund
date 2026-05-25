@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       { status: 503 }
     );
   }
+  // Note: opener text below addresses the agent as Pho-pho.
 
   let body: { phone?: string; name?: string } | null = null;
   try {
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   setAssignedLine(phone, assignedLine);
   if (name) setDisplayName(phone, name);
 
-  const opener = name ? `Hi Hugh, it's ${name}. ` : "Hi Hugh. ";
+  const opener = name ? `Hi Pho-pho, it's ${name}. ` : "Hi Pho-pho. ";
   const smsUrl = `sms:${assignedLine}?body=${encodeURIComponent(opener)}`;
 
   return NextResponse.json({ smsUrl, line: assignedLine, name: name || null });

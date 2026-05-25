@@ -36,10 +36,10 @@ export default function JoinPage() {
   return (
     <div className="wrap">
       <div className="header">
-        <h1>Pitch Hugh</h1>
+        <h1>Pitch Pho-pho</h1>
         <p>
-          Drop your number, get a private iMessage line with Hugh. He&apos;s stingy,
-          witty, and might give you a dollar if your pitch lands.
+          Drop your number, get a private iMessage line with Pho-pho. He&apos;s
+          stingy, witty, and might give you a dollar if your pitch lands.
         </p>
       </div>
 

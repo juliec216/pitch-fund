@@ -3,7 +3,7 @@ import { runTurn } from "./claude.ts";
 import { recordMessage, touchParticipant, getFund, formatCents } from "../lib/db.ts";
 
 export async function runLoop(app: SpectrumInstance): Promise<void> {
-  console.log(`Hugh is awake. Fund holds ${formatCents(getFund().remaining_cents)}.`);
+  console.log(`Pho-pho is awake. Fund holds ${formatCents(getFund().remaining_cents)}.`);
 
   // One queue per participant so concurrent texts from the same person stay ordered.
   const chains = new Map<string, Promise<void>>();

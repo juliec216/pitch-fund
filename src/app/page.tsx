@@ -51,11 +51,15 @@ export default function Page() {
   return (
     <div className="wrap">
       <div className="header">
-        <h1>Convince Hugh</h1>
+        <h1>Convince Pho-pho to win $100</h1>
         <p>
-          Hugh guards a real fund. Sign up below to get your own iMessage line, then
-          text him your best pitch. Every dollar he gives is real.
+          Pho-pho guards a real fund. Sign up below to get your own iMessage line,
+          then text your best pitch. Every dollar he gives is real.
         </p>
+      </div>
+
+      <div className="hero">
+        <img src="/pho-pho.png" alt="Pho-pho, a smiling bowl of pho with a noodle moustache" />
       </div>
 
       <div className="fundbar">
@@ -75,7 +79,7 @@ export default function Page() {
       <div className="qr-card">
         <div className="qr-text">
           <h2>Join the game</h2>
-          <p>Scan to sign up, then text Hugh from your phone.</p>
+          <p>Scan to sign up, then text Pho-pho from your phone.</p>
           <a className="qr-cta" href="/join">Or tap to sign up →</a>
         </div>
         <div className="qr-img">
@@ -104,7 +108,7 @@ export default function Page() {
         <div className="card">
           <h2>Latest payouts</h2>
           {(!stats || stats.recent_awards.length === 0) && (
-            <div className="empty">Hugh hasn&apos;t given a cent yet.</div>
+            <div className="empty">Pho-pho hasn&apos;t given a cent yet.</div>
           )}
           {stats?.recent_awards.map((a, i) => (
             <div className="award" key={i}>
@@ -115,7 +119,13 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="foot"><span className="dot" />live · refreshes every 3s</div>
+      <div className="foot">
+        <div><span className="dot" />live · refreshes every 3s</div>
+        <div>
+          This is open source and built on{" "}
+          <a href="https://photon.ai" target="_blank" rel="noopener noreferrer">Photon</a>.
+        </div>
+      </div>
     </div>
   );
 }
