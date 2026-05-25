@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node --no-warnings scripts/start-all.mjs",
+    "start:dashboard-only": "next start",
     "agent": "node --no-warnings --env-file-if-exists=.env.local src/agent/agent.ts",
     "agent:terminal": "node --no-warnings --env-file-if-exists=.env.local src/agent/terminal.ts",
     "reset-fund": "node --no-warnings --env-file-if-exists=.env.local src/lib/reset.ts"
