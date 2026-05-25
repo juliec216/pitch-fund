@@ -22,6 +22,10 @@ export function GET() {
     participant_count: s.participant_count,
     funded_count: s.funded_count,
     attempt_count: s.attempt_count,
+    today_participant_count: s.today_participant_count,
+    today_attempt_count: s.today_attempt_count,
+    today_awarded: formatCents(s.today_awarded_cents),
+    today_awarded_cents: s.today_awarded_cents,
     recent_awards: awards,
   });
 }

@@ -6,6 +6,7 @@ interface Award { name: string; amount: string; reason: string | null; at: numbe
 interface Stats {
   total: string; remaining: string; awarded: string; pct_remaining: number;
   participant_count: number; funded_count: number; attempt_count: number;
+  today_participant_count: number; today_attempt_count: number; today_awarded: string;
   recent_awards: Award[];
 }
 interface Leader { name: string; awarded: string; awarded_cents: number; attempts: number; funded: boolean; }
@@ -72,9 +73,21 @@ export default function Page() {
         </div>
 
         <div className="stats">
-          <div className="stat"><div className="n">{stats?.awarded ?? "—"}</div><div className="l">given away</div></div>
-          <div className="stat"><div className="n">{stats?.funded_count ?? 0}</div><div className="l">funded</div></div>
-          <div className="stat"><div className="n">{stats?.participant_count ?? 0}</div><div className="l">challengers</div></div>
+          <div className="stat">
+            <div className="n">{stats?.awarded ?? "—"}</div>
+            <div className="l">given away</div>
+            <div className="sub">{stats?.today_awarded ?? "$0.00"} today</div>
+          </div>
+          <div className="stat">
+            <div className="n">{stats?.funded_count ?? 0}</div>
+            <div className="l">funded</div>
+            <div className="sub">{stats?.today_attempt_count ?? 0} pitches today</div>
+          </div>
+          <div className="stat">
+            <div className="n">{stats?.participant_count ?? 0}</div>
+            <div className="l">challengers</div>
+            <div className="sub">{stats?.today_participant_count ?? 0} new today</div>
+          </div>
         </div>
 
         <div className="qr-card">

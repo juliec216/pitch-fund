@@ -194,10 +194,32 @@ export interface Stats {
   participant_count: number;
   funded_count: number;
   attempt_count: number;
+  today_participant_count: number;
+  today_attempt_count: number;
+  today_awarded_cents: number;
+}
+
+/** Ms timestamp of "today" midnight in the given IANA timezone. */
+function startOfTodayMs(tz = process.env.TZ_DISPLAY ?? "America/Los_Angeles"): number {
+  const nowMs = Date.now();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(nowMs));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const h = get("hour") % 24; // some locales render "24" at midnight
+  const m = get("minute");
+  const s = get("second");
+  return nowMs - (h * 3600 + m * 60 + s) * 1000 - (nowMs % 1000);
 }
 
 export function stats(): Stats {
   const fund = getFund();
+  const todayStart = startOfTodayMs();
+
   const agg = db()
     .prepare(
       `SELECT COUNT(*) AS participant_count,
@@ -206,6 +228,20 @@ export function stats(): Stats {
        FROM participants`
     )
     .get() as unknown as { participant_count: number; funded_count: number; attempt_count: number };
+
+  const today = db()
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM participants WHERE first_seen >= ?) AS today_participant_count,
+         (SELECT COUNT(*) FROM messages     WHERE role = 'user' AND created_at >= ?) AS today_attempt_count,
+         (SELECT COALESCE(SUM(amount_cents), 0) FROM awards WHERE created_at >= ?) AS today_awarded_cents`
+    )
+    .get(todayStart, todayStart, todayStart) as unknown as {
+      today_participant_count: number;
+      today_attempt_count: number;
+      today_awarded_cents: number;
+    };
+
   return {
     total_cents: fund.total_cents,
     remaining_cents: fund.remaining_cents,
@@ -213,6 +249,9 @@ export function stats(): Stats {
     participant_count: agg.participant_count,
     funded_count: agg.funded_count,
     attempt_count: agg.attempt_count,
+    today_participant_count: today.today_participant_count,
+    today_attempt_count: today.today_attempt_count,
+    today_awarded_cents: today.today_awarded_cents,
   };
 }
 
