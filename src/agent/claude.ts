@@ -1,12 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, Tool, ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
-import { STATIC_SYSTEM, balanceLine } from "./prompt.ts";
+import { STATIC_SYSTEM, balanceLine, participantLine } from "./prompt.ts";
 import {
   awardFunds,
   getFund,
   getHistory,
   setDisplayName,
   formatCents,
+  touchParticipant,
 } from "../lib/db.ts";
 
 const MODEL = process.env.MODEL ?? "claude-sonnet-4-6";
@@ -58,6 +59,12 @@ export async function runTurn(participantId: string, userText: string): Promise<
   const messages: MessageParam[] = history.map((h) => ({ role: h.role, content: h.content }));
   messages.push({ role: "user", content: userText });
 
+  // Per-participant context so Pho-pho knows the captured name and whether this
+  // is the first turn — kept out of the cached system block since it changes.
+  const participant = touchParticipant(participantId);
+  const priorAssistantTurns = history.filter((h) => h.role === "assistant").length;
+  const participantContext = participantLine(participant.display_name, priorAssistantTurns);
+
   for (let hop = 0; hop < 6; hop++) {
     const res = await anthropic.messages.create({
       model: MODEL,
@@ -65,6 +72,7 @@ export async function runTurn(participantId: string, userText: string): Promise<
       system: [
         { type: "text", text: STATIC_SYSTEM, cache_control: { type: "ephemeral" } },
         { type: "text", text: balanceLine(getFund().remaining_cents, total) },
+        { type: "text", text: participantContext },
       ],
       tools,
       messages,
