@@ -123,7 +123,7 @@ export default function Page() {
         <div><span className="dot" />live · refreshes every 3s</div>
         <div>
           This is open source and built on{" "}
-          <a href="https://photon.ai" target="_blank" rel="noopener noreferrer">Photon</a>.
+          <a href="https://tryphoton.ai" target="_blank" rel="noopener noreferrer">Photon</a>.
         </div>
       </div>
     </div>
