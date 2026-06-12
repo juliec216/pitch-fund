@@ -255,6 +255,24 @@ export function stats(): Stats {
   };
 }
 
+/** Wipe participants/messages/awards and refill the fund. Schema stays intact
+ * so the running agent's prepared statements remain valid. */
+export function resetAll(): { remaining_cents: number } {
+  const d = db();
+  d.exec("BEGIN IMMEDIATE");
+  try {
+    d.exec("DELETE FROM awards;");
+    d.exec("DELETE FROM messages;");
+    d.exec("DELETE FROM participants;");
+    d.exec("UPDATE fund SET remaining_cents = total_cents WHERE id = 1;");
+    d.exec("COMMIT");
+  } catch (e) {
+    d.exec("ROLLBACK");
+    throw e;
+  }
+  return { remaining_cents: getFund().remaining_cents };
+}
+
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
