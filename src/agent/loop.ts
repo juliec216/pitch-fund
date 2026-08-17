@@ -1,5 +1,7 @@
-import type { Message, Space, SpectrumInstance } from "spectrum-ts";
+import { contact, type Message, type Space, type SpectrumInstance } from "spectrum-ts";
 import { runTurn } from "./claude.ts";
+import { phoPhoVCard } from "../lib/vcard.ts";
+import { normalizePhone } from "../lib/phone.ts";
 import { recordMessage, touchParticipant, setDisplayName, getFund, formatCents } from "../lib/db.ts";
 
 /**
@@ -70,6 +72,25 @@ async function markRead(message: Message): Promise<void> {
   }
 }
 
+/**
+ * Send Pho-pho's own contact card, once, on first contact.
+ *
+ * Without it he's a bare +1 number in the recipient's thread — iMessage only
+ * shows a name and face for numbers already in Contacts, and no line profile can
+ * put it there. Sending the card lets them save him in one tap. Best-effort:
+ * platforms other than iMessage may not support contact content, and a failed
+ * card must never cost us the reply.
+ */
+async function sendContactCard(space: Space): Promise<void> {
+  const line = normalizePhone(process.env.LINE_PHONE ?? "");
+  if (!line) return;
+  try {
+    await space.send(contact(await phoPhoVCard(line)));
+  } catch (err) {
+    console.warn("contact card failed:", err instanceof Error ? err.message : err);
+  }
+}
+
 async function handle(message: Message, participantId: string, incoming: string) {
   const space: Space = message.space;
   // Mark read before the typing indicator starts, so the sender sees their
@@ -80,6 +101,8 @@ async function handle(message: Message, participantId: string, incoming: string)
   await space.responding(async () => {
     try {
       const participant = touchParticipant(participantId);
+      // Read before recordMessage bumps it — this is their very first text.
+      const isFirstContact = participant.attempt_count === 0;
       if (!participant.display_name) {
         const name = nameFromOpener(incoming);
         if (name) setDisplayName(participantId, name);
@@ -98,6 +121,10 @@ async function handle(message: Message, participantId: string, incoming: string)
       const [first, second] = parts;
       await message.reply(first);
       if (second) await space.send(second);
+
+      // After the intro, so the card reads as a handshake rather than an
+      // unexplained attachment arriving before he's said who he is.
+      if (isFirstContact) await sendContactCard(space);
 
       if (awardedCents > 0) {
         console.log(
