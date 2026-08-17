@@ -55,9 +55,16 @@ export async function runTurn(participantId: string, userText: string): Promise<
   const total = getFund().total_cents;
   const startRemaining = getFund().remaining_cents;
 
+  // The caller persists the inbound text before calling us, so it is already the
+  // last row of history — appending it again showed Claude (and the fallbacks)
+  // every message twice, which read as the person repeating themselves. Check
+  // rather than assume, so this can't silently break if the caller changes.
   const history = getHistory(participantId);
   const messages: MessageParam[] = history.map((h) => ({ role: h.role, content: h.content }));
-  messages.push({ role: "user", content: userText });
+  const last = history.at(-1);
+  if (last?.role !== "user" || last.content !== userText) {
+    messages.push({ role: "user", content: userText });
+  }
 
   // Per-participant context so Pho-pho knows the captured name and whether this
   // is the first turn — kept out of the cached system block since it changes.

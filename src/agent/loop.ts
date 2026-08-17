@@ -32,10 +32,30 @@ function splitReply(reply: string): string[] {
   return parts.slice(0, 2);
 }
 
+/**
+ * Flip the chat from "Delivered" to "Read".
+ *
+ * `message.read()` is iMessage-only sugar (the terminal provider has no such
+ * method), and it marks the whole chat read rather than the one message. It's a
+ * fire-and-forget control signal, so a failure here must never cost us the reply.
+ */
+async function markRead(message: Message): Promise<void> {
+  const read = (message as Message & { read?: () => Promise<void> }).read;
+  if (typeof read !== "function") return;
+  try {
+    await read.call(message);
+  } catch (err) {
+    console.warn("read receipt failed:", err instanceof Error ? err.message : err);
+  }
+}
+
 async function handle(message: Message, participantId: string, incoming: string) {
   const space: Space = message.space;
+  // Mark read before the typing indicator starts, so the sender sees their
+  // message actually land the moment Pho-pho picks it up — not when he replies.
+  await markRead(message);
   // space.responding toggles the typing indicator while we work — the visible
-  // "we saw your message" signal on the recipient's side.
+  // "we're working on it" signal on the recipient's side.
   await space.responding(async () => {
     try {
       touchParticipant(participantId);
