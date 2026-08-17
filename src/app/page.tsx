@@ -10,6 +10,7 @@ interface Stats {
   recent_awards: Award[];
 }
 interface Leader { name: string; awarded: string; awarded_cents: number; attempts: number; funded: boolean; }
+interface LineInfo { configured: boolean; line?: string; display?: string; smsUrl?: string; }
 
 async function getJSON<T>(url: string): Promise<T | null> {
   try {
@@ -43,11 +44,18 @@ export default function Page() {
 
   const pct = stats?.pct_remaining ?? 100;
 
+  // The QR points straight at Messages when a dedicated line is configured, so
+  // scanning it starts a conversation with no signup at all. Without one we fall
+  // back to sending people to the name form.
+  const [line, setLine] = useState<LineInfo | null>(null);
   const [joinUrl, setJoinUrl] = useState<string>("");
   useEffect(() => {
     if (typeof window !== "undefined") setJoinUrl(`${window.location.origin}/join`);
+    getJSON<LineInfo>("/api/line").then(setLine);
   }, []);
-  const qrSrc = joinUrl ? `/api/qr?data=${encodeURIComponent(joinUrl)}` : "";
+
+  const qrTarget = line?.configured ? line.smsUrl : joinUrl;
+  const qrSrc = qrTarget ? `/api/qr?data=${encodeURIComponent(qrTarget)}` : "";
 
   return (
     <div className="wrap">
@@ -60,8 +68,8 @@ export default function Page() {
 
         <h1>Convince Pho-pho to win $100</h1>
         <p className="subtitle">
-          Pho-pho guards a real fund. Sign up to get your own iMessage line, then
-          text your best pitch. Every dollar he gives is real.
+          Pho-pho guards a real fund. Scan the code, text him your best pitch.
+          Every dollar he gives is real.
         </p>
 
         <div className="fundbar">
@@ -92,12 +100,30 @@ export default function Page() {
 
         <div className="qr-card">
           <div className="qr-text">
-            <h2>Join the game</h2>
-            <a className="qr-cta" href="/join">Or tap to sign up →</a>
+            <h2>{line?.configured ? "Scan or text to play" : "Join the game"}</h2>
+            {line?.configured ? (
+              <>
+                <a className="qr-number" href={line.smsUrl}>{line.display}</a>
+                <p>Scan the code or text that number. No signup, no account.</p>
+                <a className="qr-cta" href="/join">Or tell him your name first →</a>
+              </>
+            ) : (
+              <a className="qr-cta" href="/join">Or tap to sign up →</a>
+            )}
           </div>
-          <div className="qr-img">
-            {qrSrc ? <img src={qrSrc} alt="Scan to join" width={96} height={96} /> : <div className="qr-placeholder" />}
-          </div>
+          {/* On a phone you can't scan your own screen, so the code is also a tap target. */}
+          <a className="qr-img" href={qrTarget || "/join"}>
+            {qrSrc ? (
+              <img
+                src={qrSrc}
+                alt={line?.configured ? "Scan to text Pho-pho" : "Scan to join"}
+                width={96}
+                height={96}
+              />
+            ) : (
+              <div className="qr-placeholder" />
+            )}
+          </a>
         </div>
       </section>
 

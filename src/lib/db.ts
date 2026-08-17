@@ -42,7 +42,9 @@ function db(): DatabaseSync {
       created_at INTEGER NOT NULL
     );
   `);
-  // Idempotent migration for existing DBs created before assigned_line existed.
+  // Vestigial: each player had their own pool number under shared numbers. On a
+  // dedicated line everyone texts the same one, so nothing writes this anymore —
+  // kept so older DB files still open without a migration.
   try { d.exec("ALTER TABLE participants ADD COLUMN assigned_line TEXT"); } catch {}
 
   d.prepare(
@@ -86,10 +88,6 @@ export function touchParticipant(id: string): Participant {
 export function setDisplayName(id: string, name: string): void {
   const clean = name.trim().slice(0, 40);
   db().prepare("UPDATE participants SET display_name = ? WHERE id = ?").run(clean, id);
-}
-
-export function setAssignedLine(id: string, line: string): void {
-  db().prepare("UPDATE participants SET assigned_line = ? WHERE id = ?").run(line, id);
 }
 
 export function recordMessage(id: string, role: "user" | "assistant", content: string): void {

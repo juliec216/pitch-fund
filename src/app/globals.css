@@ -134,6 +134,21 @@ html, body {
 .qr-text p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
 .qr-cta { color: var(--accent); font-weight: 700; text-decoration: none; font-size: 14px; }
 .qr-cta:hover { text-decoration: underline; }
+/* The number is the other half of the entry point: readable across a room,
+   tappable on a phone, typeable into Messages by hand. */
+.qr-number {
+  display: inline-block;
+  margin: 2px 0 8px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.qr-number:hover { color: var(--accent); }
+.qr-img { display: block; line-height: 0; }
 .qr-img img { display: block; border-radius: 10px; background: #fff; padding: 6px; border: 1px solid var(--line); }
 .qr-placeholder { width: 180px; height: 180px; background: var(--panel2); border-radius: 10px; }
 @media (max-width: 560px) {
@@ -159,6 +174,8 @@ html, body {
 
 .hero .qr-card { padding: 18px 22px; margin-bottom: 0; gap: 20px; }
 .hero .qr-text h2 { font-size: 18px; margin: 0 0 6px; }
+.hero .qr-text .qr-number { font-size: 26px; margin: 0 0 6px; }
+.hero .qr-text p { margin: 0 0 8px; }
 .hero .qr-text .qr-cta { font-size: 14px; }
 .hero .qr-img img { width: 140px !important; height: 140px !important; padding: 6px; }
 .hero .qr-img { flex-shrink: 0; }

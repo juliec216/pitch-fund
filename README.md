@@ -10,6 +10,12 @@ who got funded, and who's playing. Payouts are settled manually by you.
 - **Agent worker** (`src/agent/`) — runs a [Spectrum](https://photon.codes) iMessage loop.
   Each inbound text goes to Claude with a hardened system prompt and two server-validated
   tools: `award_funds` (deducts from the pool, can never overdraw) and `set_display_name`.
+- **Getting in** — the game runs on a **dedicated iMessage line** (Photon Business plan),
+  so there is no signup: the QR code on the dashboard encodes an `sms:` deep link and
+  scanning it opens Messages with the first text pre-filled. Anyone can text the line
+  cold. `/join` is an optional detour that asks only for a name and bakes it into that
+  opener; Pho-pho records it with `set_display_name` on his first turn. Players who
+  arrive nameless get asked once, in character. No phone number is ever collected.
 - **Dashboard** (`src/app/`) — a Next.js page that polls `/api/stats` and `/api/leaderboard`
   every 3s: remaining pool, total given away, people funded, the leaderboard (ranked by
   amount awarded), and the latest payouts.
@@ -29,8 +35,8 @@ who got funded, and who's playing. Payouts are settled manually by you.
    - `ANTHROPIC_API_KEY` — your Claude API key
    - `MODEL` — defaults to `claude-sonnet-4-6`
    - `PROJECT_ID` / `PROJECT_SECRET` — from your project Settings at https://app.photon.codes
+   - `LINE_PHONE` — your dedicated iMessage line, in `+15551234567` form
    - `FUND_USD` — total pool in dollars (default `100`)
-   - `LINE_PHONE` — the iMessage number people text (shown on the dashboard)
    - `DB_PATH` — SQLite file path (default `./fund.db`)
 
 ## Run
