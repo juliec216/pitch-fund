@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { Emoji } from "spectrum-ts";
 import type { MessageParam, Tool, ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
 import { STATIC_SYSTEM, balanceLine, participantLine } from "./prompt.ts";
 import {
@@ -17,6 +18,20 @@ const anthropic = new Anthropic({
   timeout: 120_000,
 });
 
+/**
+ * The six native iMessage tapbacks. Named rather than raw emoji so the model
+ * picks an intent and can't invent a reaction iMessage would render as a
+ * regular message instead of a tapback.
+ */
+const TAPBACKS: Record<string, string> = {
+  love: Emoji.love,
+  like: Emoji.like,
+  dislike: Emoji.dislike,
+  laugh: Emoji.laugh,
+  emphasize: Emoji.emphasize,
+  question: Emoji.question,
+};
+
 const tools: Tool[] = [
   {
     name: "set_display_name",
@@ -28,6 +43,23 @@ const tools: Tool[] = [
         name: { type: "string", description: "Public display name (max 40 chars)." },
       },
       required: ["name"],
+    },
+  },
+  {
+    name: "tapback",
+    description:
+      "Put an iMessage tapback on the pitch you were just sent. Optional garnish — use it when a reaction lands a beat the text can't, not on every turn. At most one per turn.",
+    input_schema: {
+      type: "object",
+      properties: {
+        reaction: {
+          type: "string",
+          enum: Object.keys(TAPBACKS),
+          description:
+            "love = you're paying out or genuinely moved; like = solid effort; dislike = lazy; laugh = it actually landed; emphasize = a bold claim; question = baffling.",
+        },
+      },
+      required: ["reaction"],
     },
   },
   {
@@ -49,11 +81,20 @@ const tools: Tool[] = [
 export interface AgentTurn {
   reply: string;
   awardedCents: number;
+  /** Emoji to tapback onto the inbound message, if the model asked for one. */
+  tapback: string | null;
+}
+
+/** Mutable per-turn scratch. An object, not a `let`, so the tool callback's
+ *  writes survive TypeScript's narrowing across the closure boundary. */
+interface TurnState {
+  tapback: string | null;
 }
 
 export async function runTurn(participantId: string, userText: string): Promise<AgentTurn> {
   const total = getFund().total_cents;
   const startRemaining = getFund().remaining_cents;
+  const state: TurnState = { tapback: null };
 
   // The caller persists the inbound text before calling us, so it is already the
   // last row of history — appending it again showed Claude (and the fallbacks)
@@ -106,7 +147,11 @@ export async function runTurn(participantId: string, userText: string): Promise<
         "Bold of you to send that and expect money. The answer is no — but I'm curious what comes next.",
       ];
       const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)]!;
-      return { reply: text || fallback, awardedCents: startRemaining - getFund().remaining_cents };
+      return {
+        reply: text || fallback,
+        awardedCents: startRemaining - getFund().remaining_cents,
+        tapback: state.tapback,
+      };
     }
 
     messages.push({ role: "assistant", content: res.content });
@@ -115,7 +160,7 @@ export async function runTurn(participantId: string, userText: string): Promise<
       content: toolUses.map((tu) => ({
         type: "tool_result" as const,
         tool_use_id: tu.id,
-        content: handleTool(participantId, tu),
+        content: handleTool(participantId, tu, state),
       })),
     });
   }
@@ -123,10 +168,11 @@ export async function runTurn(participantId: string, userText: string): Promise<
   return {
     reply: "Let's keep it simple — what's your pitch?",
     awardedCents: startRemaining - getFund().remaining_cents,
+    tapback: state.tapback,
   };
 }
 
-function handleTool(participantId: string, tu: ToolUseBlock): string {
+function handleTool(participantId: string, tu: ToolUseBlock, state: TurnState): string {
   const input = tu.input as Record<string, unknown>;
 
   if (tu.name === "set_display_name") {
@@ -134,6 +180,14 @@ function handleTool(participantId: string, tu: ToolUseBlock): string {
     if (!name) return "No name provided.";
     setDisplayName(participantId, name);
     return `Leaderboard name set to "${name.slice(0, 40)}".`;
+  }
+
+  if (tu.name === "tapback") {
+    const key = String(input.reaction ?? "");
+    const emoji = TAPBACKS[key];
+    if (!emoji) return `Unknown tapback "${key}". Valid: ${Object.keys(TAPBACKS).join(", ")}.`;
+    state.tapback = emoji;
+    return `Tapback ${emoji} queued on their message.`;
   }
 
   if (tu.name === "award_funds") {

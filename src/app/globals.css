@@ -148,10 +148,6 @@ html, body {
   white-space: nowrap;
 }
 .qr-number:hover { color: var(--accent); }
-.qr-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
-.qr-cta.subtle { color: var(--muted); font-weight: 600; }
-.qr-cta.subtle:hover { color: var(--accent); }
-@media (max-width: 560px) { .qr-links { justify-content: center; } }
 .qr-img { display: block; line-height: 0; }
 .qr-img img { display: block; border-radius: 10px; background: #fff; padding: 6px; border: 1px solid var(--line); }
 .qr-placeholder { width: 180px; height: 180px; background: var(--panel2); border-radius: 10px; }
