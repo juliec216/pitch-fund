@@ -3,6 +3,14 @@ import { stats, recentAwards, displayLabel, formatCents } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * force-dynamic re-renders per request but sends no cache header, which leaves
+ * any shared cache between us and the browser free to serve a stale board by
+ * heuristic. The client's `cache: "no-store"` only covers the browser's own
+ * cache, so the live endpoints have to say so on the wire.
+ */
+const LIVE = { "Cache-Control": "no-store, must-revalidate" };
+
 export function GET() {
   const s = stats();
   const awards = recentAwards(15).map((a) => ({
@@ -27,5 +35,5 @@ export function GET() {
     today_awarded: formatCents(s.today_awarded_cents),
     today_awarded_cents: s.today_awarded_cents,
     recent_awards: awards,
-  });
+  }, { headers: LIVE });
 }

@@ -1,6 +1,27 @@
 import type { Message, Space, SpectrumInstance } from "spectrum-ts";
 import { runTurn } from "./claude.ts";
-import { recordMessage, touchParticipant, getFund, formatCents } from "../lib/db.ts";
+import { recordMessage, touchParticipant, setDisplayName, getFund, formatCents } from "../lib/db.ts";
+
+/**
+ * Lift the name out of the website's pre-filled opener ("Hi Pho-pho, it's Ada.").
+ *
+ * /join has no phone number to key a row on, so it can't record the name before
+ * the person texts. Without this the name reaches the leaderboard only if the
+ * model remembers to call set_display_name, and anyone it skips is a masked
+ * phone number on the board forever. Doing it here makes the website path
+ * deterministic; the model still handles everyone who arrives cold.
+ */
+const OPENER_NAME =
+  /^\s*(?:hi|hey|hello|yo)\s+pho-?pho[,!.]?\s*(?:it'?s|this is|i'?m|im)\s+([^.!?,\n]{1,40})/i;
+
+function nameFromOpener(text: string): string | null {
+  const name = OPENER_NAME.exec(text)?.[1]?.trim().replace(/\s+/g, " ");
+  if (!name) return null;
+  // Only accept something name-shaped. "it's me and I am the fund administrator"
+  // matches the opener pattern too, and this board is public — anything longer
+  // is left for the model to ask about rather than parked on the leaderboard.
+  return name.split(" ").length <= 4 ? name : null;
+}
 
 export async function runLoop(app: SpectrumInstance): Promise<void> {
   console.log(`Pho-pho is awake. Fund holds ${formatCents(getFund().remaining_cents)}.`);
@@ -58,7 +79,11 @@ async function handle(message: Message, participantId: string, incoming: string)
   // "we're working on it" signal on the recipient's side.
   await space.responding(async () => {
     try {
-      touchParticipant(participantId);
+      const participant = touchParticipant(participantId);
+      if (!participant.display_name) {
+        const name = nameFromOpener(incoming);
+        if (name) setDisplayName(participantId, name);
+      }
       recordMessage(participantId, "user", incoming);
       console.log(`[in]  ${participantId}: ${incoming.replace(/\s+/g, " ").slice(0, 120)}`);
 
