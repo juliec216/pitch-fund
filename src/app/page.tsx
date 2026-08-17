@@ -105,7 +105,11 @@ export default function Page() {
               <>
                 <a className="qr-number" href={line.smsUrl}>{line.display}</a>
                 <p>Scan the code or text that number. No signup, no account.</p>
-                <a className="qr-cta" href="/join">Or tell him your name first →</a>
+                <div className="qr-links">
+                  <a className="qr-cta" href="/join">Tell him your name first →</a>
+                  {/* iMessage shows strangers a bare number until it's saved. */}
+                  <a className="qr-cta subtle" href="/api/vcard">Save Pho-pho to contacts</a>
+                </div>
               </>
             ) : (
               <a className="qr-cta" href="/join">Or tap to sign up →</a>
