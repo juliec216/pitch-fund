@@ -1,6 +1,6 @@
-import { Spectrum } from "spectrum-ts";
+import { Spectrum, type Message } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
-import { runLoop } from "./loop.ts";
+import { runAgent } from "./loop.ts";
 
 function requireEnv(name: string): string {
   const v = process.env[name];
@@ -13,23 +13,40 @@ function requireEnv(name: string): string {
 
 requireEnv("ANTHROPIC_API_KEY");
 
-const app = await Spectrum({
-  projectId: requireEnv("SPECTRUM_PROJECT_ID"),
-  projectSecret: requireEnv("SPECTRUM_PROJECT_SECRET"),
-  providers: [imessage.config()],
-});
+function spectrumCredentials(): { projectId: string; projectSecret: string } {
+  const projectId = process.env.SPECTRUM_PROJECT_ID;
+  const projectSecret = process.env.SPECTRUM_PROJECT_SECRET;
+  if (projectId && projectSecret) return { projectId, projectSecret };
 
-let stopPromise: Promise<void> | undefined;
+  const legacyProjectId = process.env.PROJECT_ID;
+  const legacyProjectSecret = process.env.PROJECT_SECRET;
+  if (legacyProjectId && legacyProjectSecret) {
+    console.warn(
+      "PROJECT_ID and PROJECT_SECRET are deprecated; rename them to SPECTRUM_PROJECT_ID and SPECTRUM_PROJECT_SECRET."
+    );
+    return { projectId: legacyProjectId, projectSecret: legacyProjectSecret };
+  }
 
-function stopOnce(): Promise<void> {
-  return (stopPromise ??= app.stop());
+  console.error(
+    "Missing Spectrum credentials. Set SPECTRUM_PROJECT_ID and SPECTRUM_PROJECT_SECRET (legacy PROJECT_ID and PROJECT_SECRET are temporarily supported)."
+  );
+  process.exit(1);
 }
 
-process.once("SIGINT", () => void stopOnce());
-process.once("SIGTERM", () => void stopOnce());
-
-try {
-  await runLoop(app);
-} finally {
-  await stopOnce();
+async function markRead(message: Message): Promise<void> {
+  try {
+    await message.read();
+  } catch (err) {
+    console.warn("read receipt failed:", err instanceof Error ? err.message : err);
+  }
 }
+
+const credentials = spectrumCredentials();
+await runAgent(
+  () =>
+    Spectrum({
+      ...credentials,
+      providers: [imessage.config()],
+    }),
+  { beforeTurn: markRead }
+);

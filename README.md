@@ -35,6 +35,7 @@ who got funded, and who's playing. Payouts are settled manually by you.
    - `ANTHROPIC_API_KEY` — your Claude API key
    - `MODEL` — defaults to `claude-sonnet-4-6`
    - `SPECTRUM_PROJECT_ID` / `SPECTRUM_PROJECT_SECRET` — from your project Settings at https://app.photon.codes
+     (`PROJECT_ID` / `PROJECT_SECRET` remain accepted temporarily and log a deprecation warning)
    - `LINE_PHONE` — your dedicated iMessage line, in `+15551234567` form
    - `FUND_USD` — total pool in dollars (default `100`)
    - `DB_PATH` — SQLite file path (default `./fund.db`)
