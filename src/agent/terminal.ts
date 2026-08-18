@@ -13,4 +13,17 @@ const app = await Spectrum({
   providers: [terminal.config()],
 });
 
-await runLoop(app);
+let stopPromise: Promise<void> | undefined;
+
+function stopOnce(): Promise<void> {
+  return (stopPromise ??= app.stop());
+}
+
+process.once("SIGINT", () => void stopOnce());
+process.once("SIGTERM", () => void stopOnce());
+
+try {
+  await runLoop(app);
+} finally {
+  await stopOnce();
+}

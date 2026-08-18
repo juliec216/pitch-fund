@@ -7,7 +7,7 @@ who got funded, and who's playing. Payouts are settled manually by you.
 
 ## How it works
 
-- **Agent worker** (`src/agent/`) — runs a [Spectrum](https://photon.codes) iMessage loop.
+- **Agent worker** (`src/agent/`) — runs a [Photon Spectrum 12.7.0](https://photon.codes) iMessage loop.
   Each inbound text goes to Claude with a hardened system prompt and two server-validated
   tools: `award_funds` (deducts from the pool, can never overdraw) and `set_display_name`.
 - **Getting in** — the game runs on a **dedicated iMessage line** (Photon Business plan),
@@ -34,7 +34,7 @@ who got funded, and who's playing. Payouts are settled manually by you.
    ```
    - `ANTHROPIC_API_KEY` — your Claude API key
    - `MODEL` — defaults to `claude-sonnet-4-6`
-   - `PROJECT_ID` / `PROJECT_SECRET` — from your project Settings at https://app.photon.codes
+   - `SPECTRUM_PROJECT_ID` / `SPECTRUM_PROJECT_SECRET` — from your project Settings at https://app.photon.codes
    - `LINE_PHONE` — your dedicated iMessage line, in `+15551234567` form
    - `FUND_USD` — total pool in dollars (default `100`)
    - `DB_PATH` — SQLite file path (default `./fund.db`)

@@ -29,16 +29,18 @@ export async function runLoop(app: SpectrumInstance): Promise<void> {
   // One queue per participant so concurrent texts from the same person stay ordered.
   const chains = new Map<string, Promise<void>>();
 
-  for await (const [, message] of app.messages) {
+  for await (const [space, message] of app.messages) {
+    if (message.direction !== "inbound") continue;
     if (message.content.type !== "text") continue;
-    if (message.sender?.kind === "agent") continue;
 
     const participantId = message.sender?.id;
     const incoming = message.content.text.trim();
     if (!participantId || !incoming) continue;
 
     const prior = chains.get(participantId) ?? Promise.resolve();
-    const next = prior.catch(() => {}).then(() => handle(message, participantId, incoming));
+    const next = prior
+      .catch(() => {})
+      .then(() => handle(space, message, participantId, incoming));
     chains.set(participantId, next);
   }
 }
@@ -56,22 +58,19 @@ function splitReply(reply: string): string[] {
 /**
  * Flip the chat from "Delivered" to "Read".
  *
- * `message.read()` is iMessage-only sugar (the terminal provider has no such
- * method), and it marks the whole chat read rather than the one message. It's a
- * fire-and-forget control signal, so a failure here must never cost us the reply.
+ * `message.read()` marks the whole chat read rather than the one message. It's
+ * a fire-and-forget control signal, so a failure here must never cost us the
+ * reply.
  */
 async function markRead(message: Message): Promise<void> {
-  const read = (message as Message & { read?: () => Promise<void> }).read;
-  if (typeof read !== "function") return;
   try {
-    await read.call(message);
+    await message.read();
   } catch (err) {
     console.warn("read receipt failed:", err instanceof Error ? err.message : err);
   }
 }
 
-async function handle(message: Message, participantId: string, incoming: string) {
-  const space: Space = message.space;
+async function handle(space: Space, message: Message, participantId: string, incoming: string) {
   // Mark read before the typing indicator starts, so the sender sees their
   // message actually land the moment Pho-pho picks it up — not when he replies.
   await markRead(message);

@@ -11,14 +11,25 @@ function requireEnv(name: string): string {
   return v;
 }
 
-const PROJECT_ID = requireEnv("PROJECT_ID");
-const PROJECT_SECRET = requireEnv("PROJECT_SECRET");
 requireEnv("ANTHROPIC_API_KEY");
 
 const app = await Spectrum({
-  projectId: PROJECT_ID,
-  projectSecret: PROJECT_SECRET,
+  projectId: requireEnv("SPECTRUM_PROJECT_ID"),
+  projectSecret: requireEnv("SPECTRUM_PROJECT_SECRET"),
   providers: [imessage.config()],
 });
 
-await runLoop(app);
+let stopPromise: Promise<void> | undefined;
+
+function stopOnce(): Promise<void> {
+  return (stopPromise ??= app.stop());
+}
+
+process.once("SIGINT", () => void stopOnce());
+process.once("SIGTERM", () => void stopOnce());
+
+try {
+  await runLoop(app);
+} finally {
+  await stopOnce();
+}
