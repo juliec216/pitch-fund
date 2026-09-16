@@ -2,6 +2,40 @@ import type { Message, Space, SpectrumInstance } from "spectrum-ts";
 import { runTurn } from "./claude.ts";
 import { recordMessage, touchParticipant, setDisplayName, getFund, formatCents } from "../lib/db.ts";
 
+const SHUTDOWN_SIGNALS = ["SIGINT", "SIGTERM"] as const;
+type ShutdownSignal = (typeof SHUTDOWN_SIGNALS)[number];
+
+interface RunAgentOptions {
+  beforeTurn?: (message: Message) => Promise<void>;
+}
+
+type SignalListener = (...args: unknown[]) => void;
+
+/**
+ * Spectrum installs eager signal handlers while it starts. This runner owns
+ * the application lifecycle instead, so it can stop intake and drain turns
+ * before asking Spectrum to tear down its providers.
+ */
+function signalListeners(): Map<ShutdownSignal, SignalListener[]> {
+  return new Map(
+    SHUTDOWN_SIGNALS.map((signal) => [signal, process.listeners(signal) as SignalListener[]])
+  );
+}
+
+function removeAddedSignalListeners(baseline: Map<ShutdownSignal, SignalListener[]>): void {
+  for (const signal of SHUTDOWN_SIGNALS) {
+    const inherited = [...(baseline.get(signal) ?? [])];
+    for (const listener of process.listeners(signal) as SignalListener[]) {
+      const inheritedIndex = inherited.indexOf(listener);
+      if (inheritedIndex >= 0) {
+        inherited.splice(inheritedIndex, 1);
+      } else {
+        process.off(signal, listener);
+      }
+    }
+  }
+}
+
 /**
  * Lift the name out of the website's pre-filled opener ("Hi Pho-pho, it's Ada.").
  *
@@ -23,23 +57,67 @@ function nameFromOpener(text: string): string | null {
   return name.split(" ").length <= 4 ? name : null;
 }
 
-export async function runLoop(app: SpectrumInstance): Promise<void> {
-  console.log(`Pho-pho is awake. Fund holds ${formatCents(getFund().remaining_cents)}.`);
+export async function runAgent(
+  createApp: () => Promise<SpectrumInstance>,
+  options: RunAgentOptions = {}
+): Promise<void> {
+  const baselineListeners = signalListeners();
+  const app = await createApp();
+  removeAddedSignalListeners(baselineListeners);
 
+  const messages = app.messages[Symbol.asyncIterator]();
   // One queue per participant so concurrent texts from the same person stay ordered.
   const chains = new Map<string, Promise<void>>();
+  let stopIntakePromise: Promise<void> | undefined;
 
-  for await (const [, message] of app.messages) {
-    if (message.content.type !== "text") continue;
-    if (message.sender?.kind === "agent") continue;
+  function stopIntake(): Promise<void> {
+    return (stopIntakePromise ??= Promise.resolve(messages.return?.()).then(() => undefined));
+  }
 
-    const participantId = message.sender?.id;
-    const incoming = message.content.text.trim();
-    if (!participantId || !incoming) continue;
+  const requestShutdown = () => {
+    void stopIntake().catch((err) => {
+      console.error("Error stopping message intake:", err);
+    });
+  };
 
-    const prior = chains.get(participantId) ?? Promise.resolve();
-    const next = prior.catch(() => {}).then(() => handle(message, participantId, incoming));
-    chains.set(participantId, next);
+  // Keep the listener installed while draining. The process supervisor may
+  // forward the same signal again when its sibling exits.
+  for (const signal of SHUTDOWN_SIGNALS) process.on(signal, requestShutdown);
+
+  try {
+    console.log(`Pho-pho is awake. Fund holds ${formatCents(getFund().remaining_cents)}.`);
+
+    while (true) {
+      const item = await messages.next();
+      if (item.done) break;
+
+      const [space, message] = item.value;
+      if (message.direction !== "inbound") continue;
+      if (message.content.type !== "text") continue;
+
+      const participantId = message.sender?.id;
+      const incoming = message.content.text.trim();
+      if (!participantId || !incoming) continue;
+
+      const prior = chains.get(participantId) ?? Promise.resolve();
+      const next = prior
+        .then(() => handle(space, message, participantId, incoming, options.beforeTurn))
+        .catch((err) => {
+          console.error(`Error running message chain for ${participantId}:`, err);
+        });
+      chains.set(participantId, next);
+      void next.then(() => {
+        if (chains.get(participantId) === next) chains.delete(participantId);
+      });
+    }
+  } finally {
+    for (const signal of SHUTDOWN_SIGNALS) process.off(signal, requestShutdown);
+    try {
+      await stopIntake();
+      await Promise.allSettled(chains.values());
+    } finally {
+      await app.stop();
+    }
   }
 }
 
@@ -53,28 +131,16 @@ function splitReply(reply: string): string[] {
   return parts.slice(0, 2);
 }
 
-/**
- * Flip the chat from "Delivered" to "Read".
- *
- * `message.read()` is iMessage-only sugar (the terminal provider has no such
- * method), and it marks the whole chat read rather than the one message. It's a
- * fire-and-forget control signal, so a failure here must never cost us the reply.
- */
-async function markRead(message: Message): Promise<void> {
-  const read = (message as Message & { read?: () => Promise<void> }).read;
-  if (typeof read !== "function") return;
-  try {
-    await read.call(message);
-  } catch (err) {
-    console.warn("read receipt failed:", err instanceof Error ? err.message : err);
-  }
-}
-
-async function handle(message: Message, participantId: string, incoming: string) {
-  const space: Space = message.space;
-  // Mark read before the typing indicator starts, so the sender sees their
-  // message actually land the moment Pho-pho picks it up — not when he replies.
-  await markRead(message);
+async function handle(
+  space: Space,
+  message: Message,
+  participantId: string,
+  incoming: string,
+  beforeTurn?: (message: Message) => Promise<void>
+) {
+  // Run provider-specific signals (iMessage read receipts, for example)
+  // before the typing indicator starts.
+  await beforeTurn?.(message);
   // space.responding toggles the typing indicator while we work — the visible
   // "we're working on it" signal on the recipient's side.
   await space.responding(async () => {
