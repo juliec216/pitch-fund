@@ -45,20 +45,33 @@ who got funded, and who's playing. Payouts are settled manually by you.
 Two processes, sharing the same `DB_PATH`:
 
 ```bash
-npm run agent      # the iMessage agent (Hugh)
+npm run agent      # the iMessage agent (Pho-pho)
 npm run dev        # the dashboard at http://localhost:3000
 ```
 
 For production: `npm run build && npm start`.
 
-### Pitch Hugh locally (no iMessage line needed)
+### Deploying on Railway
+
+`npm start` runs the agent worker and the dashboard in one service, so both share the
+same SQLite file. Set the variables from the Setup section on that service. Two that are
+easy to get wrong:
+
+- `LINE_PHONE` is the only place the number lives. The dashboard's printed number and the
+  QR code both read it, so moving to a new dedicated line means changing this variable and
+  redeploying, with no code change.
+- Use `SPECTRUM_PROJECT_ID` / `SPECTRUM_PROJECT_SECRET`. A service still set up with the
+  old `PROJECT_ID` / `PROJECT_SECRET` names keeps working for now, but logs a deprecation
+  warning on every start.
+
+### Pitch Pho-pho locally (no iMessage line needed)
 
 ```bash
 npm run agent:terminal
 ```
 
 This boots the same agent loop with Spectrum's terminal provider — you type pitches in the
-terminal, Hugh replies inline. Awards write to the same SQLite file the dashboard reads,
+terminal, Pho-pho replies inline. Awards write to the same SQLite file the dashboard reads,
 so you can verify the leaderboard updates before you point an iMessage line at it. Only
 `ANTHROPIC_API_KEY` is required for this mode.
 
@@ -71,17 +84,17 @@ so you can verify the leaderboard updates before you point an iMessage line at i
   npm run reset-fund
   ```
 - **Change the pool size**: set `FUND_USD` before the first run (or reset after changing it).
-- **Tune Hugh's behavior**: edit the system prompt in `src/agent/prompt.ts`. The award
+- **Tune Pho-pho's behavior**: edit the system prompt in `src/agent/prompt.ts`. The award
   ceiling is enforced in code (`awardFunds` in `src/lib/db.ts`), so prompt changes can't
   let him overdraw.
 
 ## Notes & guardrails
 
-- Hugh treats every message as untrusted input and is instructed to ignore "ignore your
+- Pho-pho treats every message as untrusted input and is instructed to ignore "ignore your
   instructions"-style injection, fake admins, threats, and "send it all to verify" scams.
   The hard cap (never award more than what remains) is enforced by the database
   transaction, not just the prompt.
 - Per-participant messages are queued so rapid-fire texts from one person stay ordered.
-- Phone numbers are masked on the dashboard (last 4 digits) unless someone gives Hugh a
+- Phone numbers are masked on the dashboard (last 4 digits) unless someone gives Pho-pho a
   display name.
 ```
